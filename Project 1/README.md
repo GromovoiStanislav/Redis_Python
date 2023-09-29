@@ -1,4 +1,4 @@
-## Redis Pub/Sub example
+## Redis (redis) Pub/Sub example
 
 ```
 python subscriber.py
