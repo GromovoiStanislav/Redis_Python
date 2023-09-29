@@ -1,7 +1,5 @@
 import asyncio
-
 import async_timeout
-
 import aioredis
 
 STOPWORD = "STOP"
@@ -29,13 +27,11 @@ async def main():
 
     future = asyncio.create_task(reader(pubsub))
 
-
     await redis.publish("channel:1", "Hello")
     await redis.publish("channel:2", "World")
     await redis.publish("channel:1", STOPWORD)
 
     await future
-
 
 
 if __name__ == "__main__":
