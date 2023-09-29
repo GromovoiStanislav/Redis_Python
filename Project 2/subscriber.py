@@ -19,6 +19,8 @@ async def reader(channel: aioredis.client.PubSub):
         except asyncio.TimeoutError:
             pass
 
+    await channel.unsubscribe()
+    await channel.close()
 
 async def main():
     redis = aioredis.from_url("redis://localhost")
@@ -35,5 +37,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    # asyncio.run(main())
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.run(main())
+    # asyncio.get_event_loop().run_until_complete(main())
