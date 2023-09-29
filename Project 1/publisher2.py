@@ -6,4 +6,4 @@ while True:
     message = input("Введите сообщение для отправки (или 'q' для выхода): ")
     if message == 'q':
         break
-    redis_client.publish('channel-3', message)
+    redis_client.publish('channel-2', message)
