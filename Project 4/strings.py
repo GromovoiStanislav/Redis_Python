@@ -63,7 +63,7 @@ def main():
     redis_client.psetex("France", 1000, "Paris")
     print(redis_client.ttl('France'))  # 1
     time.sleep(2)
-    print(redis_client.exists("France")) # 0
+    print(redis_client.exists("France"))  # 0
 
     # Remove key in 10 sec
     redis_client.expire("USA", 10)
@@ -77,6 +77,27 @@ def main():
             print('USA exists')
         else:
             print('Not found...')
+
+    print('************** incr *****************')
+    redis_client.set("counter", 0)
+    redis_client.incr("counter")
+
+    print(redis_client.get("counter"))  # b'1'
+    redis_client.incrby("counter")
+    print(redis_client.get("counter"))  # b'2'
+    redis_client.incr("counter", 10)
+    print(redis_client.get("counter"))  # b'12'
+    redis_client.incrby("counter", 10)
+    print(redis_client.get("counter"))  # b'22'
+
+    redis_client.decr("counter")
+    print(redis_client.get("counter").decode())  # 21
+    redis_client.decrby("counter")
+    print(redis_client.get("counter").decode())  # 20
+    redis_client.decr("counter", 5)
+    print(redis_client.get("counter").decode())  # 15
+    redis_client.decrby("counter", 5)
+    print(redis_client.get("counter").decode())  # 10
 
     redis_client.quit()
 

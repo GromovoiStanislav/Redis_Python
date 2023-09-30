@@ -25,6 +25,9 @@ def main():
     redis_client.hset("hash:001", "key3", 12345)
     print(redis_client.hget("hash:001", "key3").decode())
 
+    redis_client.hincrby("hash:001", "key3", 10)
+    print(redis_client.hget("hash:001", "key3").decode())  # 12355
+
     hash_data = redis_client.hgetall("hash:001")
     print(hash_data)  # {b'key1': b'value1', b'key2': b'value2', b'key3': b'12345'}
 
