@@ -17,51 +17,11 @@ def main():
     # Выполняем команду FLUSHALL для очистки всей базы данных
     redis_client.flushall()
 
-    print('************** Strings *****************')
 
-    # redis_client.set_response_callback('GET', lambda x: x.decode('utf-8'))
-
-    redis_client.set('favoriteflavor', 'Mint Choc Chip')
-    print(redis_client.getset('favoriteflavor', 'Vanilla Bean').decode())  # Mint Choc Chip
-    print(redis_client.get('favoriteflavor'))  # Vanilla Bean
-
-    # Set expire date = 1 day from now
-    redis_client.set('favoriteflavor', 'ToDelete', ex=60 * 60 * 24)
-    print(redis_client.ttl('favoriteflavor'))  # Expires: 86400
-
-    # Set expire date = 5 sec from now
-    redis_client.set('favoriteflavor', 'ToDelete', px=10 * 1000)
-    print(redis_client.ttl('favoriteflavor'))  # Expires: 10
-
-    # Set expire date = 12 hours from now
-    redis_client.set('anotherflavor', 'ToDelete', px=60 * 60 * 12 * 1000)
-    print(redis_client.ttl('anotherflavor'))  # Expires: 43200
-
-    redis_client.execute_command("SET", 'onetimecoupon', 'halftimeoff')
-    print(redis_client.getdel('onetimecoupon').decode())  # halftimeoff
-    print(redis_client.execute_command("GET", 'onetimecoupon'))  # None
-
-    redis_client.set('limitedtimecoupon', 'freeicecream')
-    # Remove key in 60 sex
-    print(redis_client.getex('limitedtimecoupon', ex=60))  # freeicecream
-    print(redis_client.ttl('limitedtimecoupon'))  # 60
-    # Remove key in 30 sec
-    print(redis_client.getex('limitedtimecoupon', px=30 * 1000))
-    print(redis_client.ttl('limitedtimecoupon'))  # 10
 
     print('************** List/Array *****************')
 
-    print('************** Hash *****************')
 
-    redis_client.hmset("hash", {"key1": "value1", "key2": "value2", "key3": 123})
-    print(redis_client.hgetall("hash"))  # {b'key1': b'value1', b'key2': b'value2', b'key3': b'123'}
-
-    redis_client.hset("hash", "key3", 12345)
-    hash_data = redis_client.hgetall("hash")
-    print(hash_data)  # {b'key1': b'value1', b'key2': b'value2', b'key3': b'12345'}
-    # Преобразование бинарных данных в строковый формат
-    decoded_data = {key.decode("utf-8"): value.decode("utf-8") for key, value in hash_data.items()}
-    print(decoded_data)  # {'key1': 'value1', 'key2': 'value2', 'key3': '12345'}
 
     # # ***********************************
     # # 3) Streams: MINID Trimming Strategy
