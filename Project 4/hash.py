@@ -8,7 +8,7 @@ load_dotenv()
 def main():
     # Создаем подключение к серверу Redis
     REDIS_URL = os.environ.get('REDIS_URL')
-    print(REDIS_URL)
+
     if REDIS_URL:
         redis_client = redis.from_url(REDIS_URL)
     else:
@@ -34,6 +34,9 @@ def main():
     # Преобразование бинарных данных в строковый формат
     decoded_data = {key.decode(): value.decode() for key, value in hash_data.items()}
     print(decoded_data)  # {'key1': 'value1', 'key2': 'value2', 'key3': '12345'}
+
+    redis_client.hdel("hash:001", "key3")
+    print(redis_client.hgetall("hash:001")) # {b'key1': b'value1', b'key2': b'value2'}
 
     if redis_client.exists("hash:001"):
         print('hash:001 exists')

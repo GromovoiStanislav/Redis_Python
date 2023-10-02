@@ -9,7 +9,7 @@ load_dotenv()
 def main():
     # Создаем подключение к серверу Redis
     REDIS_URL = os.environ.get('REDIS_URL')
-    print(REDIS_URL)
+
     if REDIS_URL:
         redis_client = redis.from_url(REDIS_URL)
     else:
