@@ -88,7 +88,7 @@ async def main1():
 async def main2():
     print('************** Hash *****************')
     redis = aioredis.from_url("redis://localhost", db=0, decode_responses=True)
-    await redis.hmset("hash", mapping={"key1": "value1", "key2": "value2", "key3": 123})
+    await redis.hmset("hash", mapping={"key1": "value1", "key2": "value2", "key3": "123"})
     result = await redis.hgetall("hash")
 
     assert result == {
@@ -120,6 +120,7 @@ async def main2():
 
 async def main3():
     # Transactions
+    print('************** Pipeline *****************')
     redis = await aioredis.from_url("redis://localhost", db=0, decode_responses=True)
     async with redis.pipeline(transaction=True) as pipe:
         ok1, ok2 = await (pipe.set("key1", "value1").set("key2", "value2").execute())
@@ -132,10 +133,31 @@ async def main3():
     async with redis.pipeline(transaction=True) as pipe:
         res = await pipe.incr("foo").incr("bar").execute()
     print(res)
+
     await redis.close()
 
 
+async def main4():
+    # List
+    async with aioredis.from_url("redis://localhost", db=0, decode_responses=True) as redis:
+        print('************** List *****************')
+        if await redis.exists("my-list"):
+            await redis.delete('my-list')
+
+        await redis.rpush('my-list', 'a', 'b', 'c')
+        await redis.rpush('my-list', 'd')
+
+        print(await redis.lrange('my-list', 0, -1))  # ['a', 'b', 'c', 'd']
+        print(await redis.llen('my-list'))  # 4
+        # print(await redis.lpos('my-list', 'b'))  # 1
+        # print(await redis.lpos('my-list', 'G'))  # None
+        print(await redis.lindex('my-list', 10))  # None
+
+
+
+
 async def main_pool():
+    print('************** Pool *****************')
     pool = aioredis.ConnectionPool.from_url("redis://localhost", max_connections=10, decode_responses=True)
     redis = aioredis.Redis(connection_pool=pool)
     await redis.execute_command("set", "my-key", "my-value")
@@ -147,4 +169,5 @@ if __name__ == '__main__':
     asyncio.run(main1())
     asyncio.run(main2())
     asyncio.run(main3())
+    asyncio.run(main4())
     asyncio.run(main_pool())
