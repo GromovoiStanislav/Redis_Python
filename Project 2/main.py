@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-async def main1():
+async def strings():
     redis = aioredis.from_url("redis://localhost", db=0)
 
     print('************** Strings *****************')
@@ -93,7 +93,7 @@ async def main1():
     await redis.close()
 
 
-async def main2():
+async def hashes():
     redis = aioredis.from_url("redis://localhost", db=0, decode_responses=True)
 
     print('************** Hash *****************')
@@ -128,7 +128,7 @@ async def main2():
     await redis.close()
 
 
-async def main3():
+async def pipeline():
     redis = await aioredis.from_url("redis://localhost", db=0, decode_responses=True)
 
     print('************** Pipeline *****************')  # Transactions
@@ -148,7 +148,7 @@ async def main3():
     await redis.close()
 
 
-async def main4():
+async def lists():
     REDIS_URL = os.environ.get('REDIS_URL')
 
     # List
@@ -210,7 +210,7 @@ async def main4():
             print('Not found...')  # Not found...
 
 
-async def main5():
+async def json():
     import json
     REDIS_URL = os.environ.get('REDIS_URL')
 
@@ -359,9 +359,9 @@ async def main_pool():
 
 
 if __name__ == '__main__':
-    # asyncio.run(main1())
-    # asyncio.run(main2())
-    # asyncio.run(main3())
-    # asyncio.run(main4())
-    asyncio.run(main5())
-    # asyncio.run(main_pool())
+    asyncio.run(strings())
+    asyncio.run(hashes())
+    asyncio.run(pipeline())
+    asyncio.run(lists())
+    asyncio.run(json())
+    asyncio.run(main_pool())
