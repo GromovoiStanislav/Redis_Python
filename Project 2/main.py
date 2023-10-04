@@ -99,7 +99,7 @@ async def hashes():
     print('************** Hash *****************')
 
     await redis.hmset("hash", mapping={"key1": "value1", "key2": "value2", "key3": 123})
-    result = await redis.hgetall("hash")
+    result = await redis.hgetall("hash")  # {'key1': 'value1', 'key2': 'value2', 'key3': '123'}
 
     assert result == {
         "key1": "value1",
@@ -109,21 +109,59 @@ async def hashes():
     print(result)
 
     await redis.hset("hash", "key3", 12345)
-    print(await redis.hgetall("hash"))
+    await redis.hsetnx("hash", "key3", 10)
+    print(await redis.hgetall("hash"))  # {'key1': 'value1', 'key2': 'value2', 'key3': '12345'}
+
+    print(await redis.hmget("hash", "key3"))  # ['12345']
+    print(await redis.hmget("hash", "key1", "key2"))  # ['value1', 'value2']
+    print(await redis.hmget("hash", ["key1", "key2"]))  # ['value1', 'value2']
+
+    print(await redis.hkeys("hash"))  # ['key1', 'key2', 'key3']
+    print(await redis.hvals("hash"))  # ['value1', 'value2', '12345']
+    print(await redis.hlen("hash"))  # 3
 
     await redis.hincrby("hash", "key3", 10)
     print(await redis.hget("hash", "key3"))  # 12355
+
+    await redis.hincrbyfloat("hash", "key3", 1.5)
+    print(await redis.hget("hash", "key3"))  # 12356.5
+
+    await redis.hdel("hash", "key3")
+    print(await redis.hget("hash", "key3"))  # None
+    print(await redis.hexists("hash", "key3"))  # False
+
+    # Генерируем данные и добавляем их в хэш
+    for i in range(1, 1001):  # Создаем 1000 ключей и значений
+        field = f'key{i}'
+        value = f'value{i}'
+        await redis.hset("big_hash", field, value)
+
+    cursor = 0  # Инициализируем курсор значением "0"
+    while True:
+        # Выполняем HSCAN с текущим курсором
+        cursor, data = await redis.hscan("big_hash", cursor=cursor, count=10)
+
+        print(f"Cursor: {cursor}")
+        print(f"Data: {data}")
+
+        # Обрабатываем данные, например, выводим их на экран
+        for field, value in data.items():
+            print(f"Field: {field}, Value: {value}")
+
+        # Если курсор равен "0", то это означает, что мы просканировали все данные
+        if cursor == 0:
+            break
 
     # remove in 10 sec
     await redis.expire("hash", 10)
     print(await redis.ttl("hash"))  # 10
 
-    if await redis.exists("hash"):
-        await redis.delete("hash")
-        if await redis.exists("hash"):
-            print('"hash" exists')
+    if await redis.exists("big_hash"):
+        await redis.delete("big_hash")
+        if await redis.exists("big_hash"):
+            print('"big_hash" exists')
         else:
-            print('"hash" not found...')
+            print('"big_hash" not found...')  # "hash" not found...
 
     await redis.close()
 
@@ -198,6 +236,9 @@ async def lists():
         print(await redis.lrange('my-list', 0, -1))  # ['CC', 'c', 'b']
         print(await redis.lrange('new-list', 0, -1))  # []
 
+        print(await redis.sort('my-list', alpha=True))  # ['CC', 'b', 'c']
+        print(await redis.lrange('my-list', 0, -1))  # ['CC', 'c', 'b']
+
         # Remove key in 10 sec
         await redis.expire('my-list', 10)
         print(await redis.ttl('my-list'))  # 10
@@ -210,11 +251,97 @@ async def lists():
             print('Not found...')  # Not found...
 
 
+async def sets():
+    async with aioredis.from_url("redis://localhost", db=0, decode_responses=True) as redis:
+        print('************** Set *****************')
+
+        print(await redis.sadd("users:1:tokens", 'Tm1='))  # 1
+        print(await redis.sadd("users:1:tokens", 'Tm1='))  # 0
+        print(await redis.sadd("users:1:tokens", 'Tm2=', 'Tm3=', 'Tm4=', 'Tm5=', 'Tm6=', 'Tm7=', 'Tm22='))  # 7
+        print(
+            await redis.smembers("users:1:tokens"))  # {'Tm22=', 'Tm3=', 'Tm6=', 'Tm2=', 'Tm5=', 'Tm1=', 'Tm4=', 'Tm7='
+        print(await redis.scard("users:1:tokens"))  # 8
+
+        # Returns if member is a member of the set stored at key
+        print(await redis.sismember("users:1:tokens", 'Tm2='))  # True
+        print(await redis.sismember("users:1:tokens", 'Tm20='))  # False
+
+        await redis.sadd('users:2:tokens', 'Tm2=', 'Tm3=', 'Tm14=', 'Tm15=', 'Tm16=', 'Tm17=', 'Tm22=')
+
+        # Returns the members of the set resulting from the difference between the first set and all the successive sets.
+        print(await redis.sdiffstore('diff', 'users:2:tokens', 'users:1:tokens'))  # 4
+        print(await redis.smembers("diff"))  # {'Tm15=', 'Tm16=', 'Tm14=', 'Tm17='}
+        diff = await redis.sdiff('users:2:tokens', 'users:1:tokens')
+        print(diff)  # {'Tm15=', 'Tm16=', 'Tm14=', 'Tm17='}
+
+        print(await redis.sdiffstore('diff', 'users:1:tokens', 'users:2:tokens'))  # 5
+        print(await redis.smembers("diff"))  # {'Tm4=', 'Tm6=', 'Tm1=', 'Tm5=', 'Tm7='}
+        diff = await redis.sdiff('users:1:tokens', 'users:2:tokens')
+        print(diff)  # {'Tm4=', 'Tm6=', 'Tm1=', 'Tm5=', 'Tm7='}
+
+        # Returns the members of the set resulting from the intersection of all the given sets
+        print(await redis.sinterstore('inter', 'users:2:tokens', 'users:1:tokens'))  # 3
+        print(await redis.smembers("inter"))  # {'Tm22=', 'Tm2=', 'Tm3='}
+        inter = await redis.sinter('users:1:tokens', 'users:2:tokens')
+        print(inter)  # {'Tm22=', 'Tm2=', 'Tm3='}
+
+        # Returns the members of the set resulting from the union of all the given sets
+        print(await redis.sunionstore('union', 'users:2:tokens', 'users:1:tokens'))  # 12
+        print(await redis.smembers(
+            "union"))  # {'Tm6=', 'Tm3=', 'Tm7=', 'Tm1=', 'Tm15=', 'Tm2=', 'Tm4=', 'Tm16=', 'Tm5=', 'Tm14=', 'Tm22=', 'Tm17='}
+        union = await redis.sunion('users:1:tokens', 'users:2:tokens')
+        print(
+            union)  # {'Tm6=', 'Tm3=', 'Tm7=', 'Tm1=', 'Tm15=', 'Tm2=', 'Tm4=', 'Tm16=', 'Tm5=', 'Tm14=', 'Tm22=', 'Tm17='}
+
+        # Get one or multiple random members from a set
+        print(await redis.srandmember("users:1:tokens"))  # Tm22=
+        print(await redis.srandmember("users:1:tokens", 3))  # ['Tm4=', 'Tm6=', 'Tm3=']
+
+        # Remove and return a random member of set
+        print(await redis.smembers("users:2:tokens"))  # {'Tm2=', 'Tm15=', 'Tm17=', 'Tm22=', 'Tm16=', 'Tm14=', 'Tm3='}
+        print(await redis.spop("users:2:tokens"))  # Tm17=
+        print(await redis.smembers("users:2:tokens"))  # {'Tm2=', 'Tm15=', 'Tm22=', 'Tm16=', 'Tm14=', 'Tm3='}
+
+        # Remove one or more members from a set
+        print(
+            await redis.smembers("users:1:tokens"))  # {'Tm6=', 'Tm5=', 'Tm3=', 'Tm7=', 'Tm2=', 'Tm1=', 'Tm4=', 'Tm22='}
+        await redis.srem("users:1:tokens", 'Tm22=', 'Tm7=')
+        print(await redis.smembers("users:1:tokens"))  # {'Tm4=', 'Tm1=', 'Tm3=', 'Tm2=', 'Tm6=', 'Tm5='}
+
+        # Move a member from one set to another
+        print(await redis.smove('users:1:tokens', 'users:2:tokens', 'Tm3='))  # True
+        print(await redis.smove('users:1:tokens', 'users:2:tokens', 'Tm22='))  # False
+        print(await redis.smembers("users:1:tokens"))  # {'Tm6=', 'Tm1=', 'Tm5=', 'Tm2=', 'Tm4='}
+        print(await redis.smembers("users:2:tokens"))  # {'Tm22=', 'Tm2=', 'Tm3=', 'Tm14=', 'Tm16=', 'Tm17='}
+
+        cursor = 0
+        while True:
+            # Выполняем SSCAN с текущим курсором
+            cursor, data = await redis.sscan('users:1:tokens', cursor=cursor, count=10)
+
+            print(f"Cursor: {cursor}")
+            print(f"Data: {data}")
+
+            # Обрабатываем данные, например, выводим их на экран
+            for item in data:
+                print(f"Item: {item}")
+
+            # Если курсор равен "0", то это означает, что мы просканировали все данные
+            if cursor == 0:
+                break
+
+        if await redis.exists('users:1:tokens'):
+            print(await redis.exists('users:1:tokens'))  # 1
+            print(await redis.type('users:1:tokens'))  # set
+            print(await redis.delete('users:1:tokens'))  # 1
+            print(await redis.type('users:1:tokens'))  # none
+            print(await redis.exists('users:1:tokens'))  # 0
+
+
 async def json():
     import json
     REDIS_URL = os.environ.get('REDIS_URL')
 
-    # List
     async with aioredis.from_url(REDIS_URL, db=0, decode_responses=True) as redis:
 
         print('************** JSON *****************')
@@ -363,5 +490,6 @@ if __name__ == '__main__':
     asyncio.run(hashes())
     asyncio.run(pipeline())
     asyncio.run(lists())
+    asyncio.run(sets())
     asyncio.run(json())
     asyncio.run(main_pool())
